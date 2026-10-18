@@ -166,3 +166,86 @@ temperature_plot / snowfall_plot
 
 Minimum and maximum daily temperatures show a strong positive association: days with higher minimum temperatures generally have higher maximum temperatures. Some extreme values and observations where the maximum is below the minimum suggest possible recording issues. Among days with snowfall greater than 0 and less than 100 mm, distributions are fairly similar across years, with medians near 25 mm and some variation in spread. There is no obvious consistent trend over time within this restricted range.
 
+## Problem 2
+
+```{r clean_nhanes_demographics}
+nhanes_covar_df =
+  read_csv("data/nhanes_covar.csv", skip = 4) |>
+  janitor::clean_names() |>
+  drop_na() |>
+  filter(age >= 21) |>
+  mutate(
+    sex = factor(
+      sex,
+      levels = c(1, 2),
+      labels = c("Male", "Female")
+    ),
+    education = factor(
+      education,
+      levels = c(1, 2, 3),
+      labels = c(
+        "Less than high school",
+        "High school equivalent",
+        "More than high school"
+      )
+    )
+  )
+
+nhanes_covar_df
+```
+
+```{r tidy_merge_nhanes}
+nhanes_accel_df =
+  read_csv("data/nhanes_accel.csv") |>
+  janitor::clean_names() |>
+  pivot_longer(
+    cols = starts_with("min"),
+    names_to = "minute",
+    names_prefix = "min",
+    values_to = "mims"
+  ) |>
+  mutate(minute = as.integer(minute))
+
+nhanes_df =
+  inner_join(nhanes_covar_df, nhanes_accel_df, by = "seqn")
+
+nhanes_df |>
+  summarize(
+    n_participants = n_distinct(seqn),
+    n_observations = n()
+  )
+```
+
+```{r education_sex_table}
+nhanes_df |>
+  distinct(seqn, sex, education) |>
+  count(education, sex) |>
+  pivot_wider(
+    names_from = sex,
+    values_from = n,
+    values_fill = 0
+  ) |>
+  knitr::kable(
+    col.names = c("Education level", "Male", "Female"),
+    caption = "Number of participants by education level and sex"
+  )
+```
+
+```{r age_distributions, fig.width=8, fig.asp=.6}
+nhanes_df |>
+  distinct(seqn, sex, age, education) |>
+  ggplot(aes(x = sex, y = age, fill = sex)) +
+  geom_boxplot() +
+  facet_wrap(~ education, nrow = 1, labeller = label_wrap_gen(width = 20)) +
+  labs(
+    title = "Age distributions by sex and education",
+    x = "Sex",
+    y = "Age (years)"
+  ) +
+  theme(legend.position = "none")
+```
+
+After excluding participants younger than 21 and those with missing demographic data, 228 participants remained. I encoded sex and education as factors, reshaped the activity measurements into one row per participant per minute, and merged the datasets using participant ID. The largest education category is more than high school, with 56 men and 59 women. Counts are similar by sex in the other categories except high school equivalent, which includes 35 men and 23 women. Age distributions overlap substantially between sexes. Participants with more than high school education generally have lower median ages, while women in the high school equivalent group have a higher median age than men.
+
+
+
