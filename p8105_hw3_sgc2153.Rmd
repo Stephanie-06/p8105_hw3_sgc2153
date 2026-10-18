@@ -81,6 +81,54 @@ noaa_df |>
 
 I created separate year, month, and day variables, converted temperatures to numeric values in degrees Celsius, and converted precipitation to millimeters. Snowfall and snow depth were retained in millimeters. The most common snowfall value is 0 mm, appearing in 2,008,508 observations, which is expected because most days have no snowfall. The next most common values are 25, 13, and 51 mm. These are approximately 1, 0.5, and 2 inches, suggesting that measurements recorded in inches were converted to millimeters and rounded.
 
+```{r january_july_temperature, fig.width=8, fig.asp=.6}
+noaa_monthly_df =
+  noaa_df |>
+  filter(month %in% c(1, 7), !is.na(tmax)) |>
+  group_by(id, year, month) |>
+  summarize(
+    mean_tmax = mean(tmax),
+    .groups = "drop"
+  ) |>
+  mutate(
+    month = factor(
+      month,
+      levels = c(1, 7),
+      labels = c("January", "July")
+    )
+  )
+
+noaa_monthly_df |>
+  ggplot(aes(x = year, y = mean_tmax)) +
+  geom_point(alpha = .3, size = .8) +
+  facet_grid(. ~ month) +
+  labs(
+    title = "Average daily maximum temperature by station",
+    x = "Year",
+    y = "Mean maximum temperature (°C)"
+  )
+```
+
+```{r july_outlier}
+noaa_monthly_df |>
+  filter(month == "July") |>
+  arrange(mean_tmax) |>
+  slice_head(n = 5)
+```
+
+```{r check_july_outlier}
+noaa_df |>
+  filter(id == "USC00308962", year == 1988, month == 7) |>
+  summarize(
+    recorded_days = n(),
+    days_with_tmax = sum(!is.na(tmax)),
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    min_tmax = min(tmax, na.rm = TRUE),
+    max_tmax = max(tmax, na.rm = TRUE)
+  )
+```
+
+July has much higher average maximum temperatures than January, reflecting seasonal differences. Stations also vary within each year, and January shows more pronounced year-to-year fluctuations than July. An unusually low July average occurs at station USC00308962 in 1988, at approximately 13.95°C. All 31 days have maximum temperature records, so missing days do not explain this outlier. Further investigation would be needed to determine whether it reflects actual conditions or a recording issue.
 
 
 
