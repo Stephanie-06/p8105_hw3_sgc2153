@@ -275,4 +275,42 @@ nhanes_total_df |>
 
 Total daily activity generally decreases with age, although the relationship is nonlinear and varies by education level and sex. Women tend to have higher activity than men across much of the age range in the high school equivalent and more than high school groups. In the less than high school group, the curves cross, with men showing higher activity around ages 50–65. There is substantial individual variation, including a participant with unusually low total activity in the more than high school group. These patterns are descriptive and do not establish causal effects of age, sex, or education.
 
+```{r activity_time_course, fig.width=9, fig.height=5}
+nhanes_time_df =
+  nhanes_df |>
+  group_by(education, sex, minute) |>
+  summarize(mean_mims = mean(mims), .groups = "drop") |>
+  mutate(hour = (minute - 1) / 60)
+
+nhanes_time_df |>
+  ggplot(aes(x = hour, y = mean_mims, color = sex)) +
+  geom_line(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.2) +
+  facet_wrap(
+    ~education,
+    nrow = 1,
+    labeller = label_wrap_gen(width = 20)
+  ) +
+  scale_x_continuous(
+    breaks = c(0, 6, 12, 18, 24),
+    labels = c("00:00", "06:00", "12:00", "18:00", "24:00")
+  ) +
+  labs(
+    title = "Activity throughout the day by education and sex",
+    x = "Time of day",
+    y = "Mean activity (MIMS)",
+    color = "Sex"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+The graph shows that activity is lowest overnight, rises sharply in the morning, and declines in the evening across all three education groups. In addition, men and women have similar daytime activity in the less than high school group. Finally, we can also observe that women generally have higher daytime activity in the other two groups, with the clearest difference in the more than high school group.
+
+
+
+
+
+
+
+
 
