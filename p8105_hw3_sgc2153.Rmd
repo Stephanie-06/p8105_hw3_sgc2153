@@ -7,7 +7,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-
+library(p8105.datasets)
 knitr::opts_chunk$set(
   echo = TRUE,
   fig.width = 6,
@@ -25,3 +25,64 @@ options(
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
+
+## Problem 1
+
+```{r load_noaa}
+data("ny_noaa")
+
+ny_noaa
+```
+
+```{r noaa_missingness}
+ny_noaa |>
+  summarize(across(everything(), ~ mean(is.na(.x)))) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "proportion_missing"
+  ) |>
+  knitr::kable(digits = 3)
+```
+
+```{r noaa_overview}
+ny_noaa |>
+  summarize(
+    n_stations = n_distinct(id),
+    first_date = min(date),
+    last_date = max(date)
+  )
+```
+
+The ny_noaa dataset contains 2,595,176 observations and 7 variables, representing daily weather records from 747 stations in New York State between 1981 and 2010. Each row represents a station on a particular date. Variables include station ID (id), date (date), precipitation (prcp), snowfall (snow), snow depth (snwd), and maximum and minimum temperatures (tmax and tmin). Missing data are substantial, particularly for temperature: approximately 43.7% of both maximum and minimum temperature values are missing. Precipitation, snowfall, and snow depth are approximately 5.6%, 14.7%, and 22.8% missing, respectively. These gaps limit the observations available for each analysis.
+
+```{r clean_noaa}
+noaa_df =
+  ny_noaa |>
+  mutate(
+    year = lubridate::year(date),
+    month = lubridate::month(date),
+    day = lubridate::day(date),
+    tmax = as.numeric(tmax) / 10,
+    tmin = as.numeric(tmin) / 10,
+    prcp = prcp / 10
+  )
+
+noaa_df
+```
+
+```{r snowfall_counts}
+noaa_df |>
+  filter(!is.na(snow)) |>
+  count(snow, sort = TRUE) |>
+  slice_head(n = 10) |>
+  knitr::kable()
+```
+
+I created separate year, month, and day variables, converted temperatures to numeric values in degrees Celsius, and converted precipitation to millimeters. Snowfall and snow depth were retained in millimeters. The most common snowfall value is 0 mm, appearing in 2,008,508 observations, which is expected because most days have no snowfall. The next most common values are 25, 13, and 51 mm. These are approximately 1, 0.5, and 2 inches, suggesting that measurements recorded in inches were converted to millimeters and rounded.
+
+
+
+
+
+
