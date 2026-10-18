@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(p8105.datasets)
+library(patchwork)
 knitr::opts_chunk$set(
   echo = TRUE,
   fig.width = 6,
@@ -130,7 +131,38 @@ noaa_df |>
 
 July has much higher average maximum temperatures than January, reflecting seasonal differences. Stations also vary within each year, and January shows more pronounced year-to-year fluctuations than July. An unusually low July average occurs at station USC00308962 in 1988, at approximately 13.95°C. All 31 days have maximum temperature records, so missing days do not explain this outlier. Further investigation would be needed to determine whether it reflects actual conditions or a recording issue.
 
+```{r temperature_snowfall_plot, fig.width=8, fig.height=10}
+temperature_plot =
+  noaa_df |>
+  drop_na(tmin, tmax) |>
+  ggplot(aes(x = tmin, y = tmax)) +
+  geom_bin2d(bins = 60) +
+  scale_fill_viridis_c(
+  breaks = c(5000, 10000, 15000),
+  labels = c("5k", "10k", "15k")
+) +
+  labs(
+    title = "Daily minimum and maximum temperatures",
+    x = "Minimum temperature (°C)",
+    y = "Maximum temperature (°C)",
+    fill = "Count"
+  )
 
+snowfall_plot =
+  noaa_df |>
+  filter(snow > 0, snow < 100) |>
+  ggplot(aes(x = factor(year), y = snow)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution of snowfall by year",
+    subtitle = "Days with snowfall greater than 0 and less than 100 mm",
+    x = "Year",
+    y = "Snowfall (mm)"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
 
+temperature_plot / snowfall_plot
+```
 
+Minimum and maximum daily temperatures show a strong positive association: days with higher minimum temperatures generally have higher maximum temperatures. Some extreme values and observations where the maximum is below the minimum suggest possible recording issues. Among days with snowfall greater than 0 and less than 100 mm, distributions are fairly similar across years, with medians near 25 mm and some variation in spread. There is no obvious consistent trend over time within this restricted range.
 
